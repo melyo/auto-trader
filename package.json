@@ -1,0 +1,26 @@
+{
+  "name": "auto-trader",
+  "version": "0.1.0",
+  "description": "Auto create buy and sell order in Binance",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "ISC",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=8.10.0"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "dotenv": "^8.2.0",
+    "toad-scheduler": "^1.0.2",
+    "ws": "^7.4.4"
+  },
+  "devDependencies": {
+    "eslint": "^7.23.0",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^2.2.1"
+  }
+}

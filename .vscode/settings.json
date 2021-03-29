@@ -1,0 +1,14 @@
+{
+  "editor.renderWhitespace": "all",
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+  "editor.renderIndentGuides": true,
+  "editor.smoothScrolling": true,
+  "editor.tabSize": 2,
+  "editor.formatOnSave": false,
+  "editor.rulers": [100],
+  "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+  }
+}
