@@ -2,7 +2,7 @@ const axios = require('axios')
 const { BinanceClientError } = require('./error')
 const signature = require('./signature')
 
-const { BINANCE_API_URL, BINANCE_API_KEY, CC_SYMBOL, EX_SYMBOL } = process.env
+const { BINANCE_API_URL, BINANCE_API_KEY, CRYPTO_SYMBOL, SOURCE_SYMBOL } = process.env
 
 const client = axios.create({
   baseURL: BINANCE_API_URL,
@@ -32,7 +32,7 @@ const handleRequest = async (request) => {
 }
 
 function getPrice() {
-  const params = { symbol: `${CC_SYMBOL}${EX_SYMBOL}` }
+  const params = { symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}` }
   const request = client.get('/api/v3/ticker/price', { params })
   return handleRequest(request)
 }
@@ -45,7 +45,7 @@ function getAccount() {
 }
 
 function getOpenOrders() {
-  const params = signature.generate({ symbol: `${CC_SYMBOL}${EX_SYMBOL}` })
+  const params = signature.generate({ symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}` })
   const headers = { 'X-MBX-APIKEY': BINANCE_API_KEY }
   const request = client.get(`/api/v3/openOrders?${params}`, { headers })
   return handleRequest(request)
@@ -53,7 +53,7 @@ function getOpenOrders() {
 
 function testOrder(side, price, quantity) {
   const params = signature.generate({
-    symbol: `${CC_SYMBOL}${EX_SYMBOL}`,
+    symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}`,
     type: 'LIMIT',
     timeInForce: 'GTC',
     side,
@@ -67,7 +67,7 @@ function testOrder(side, price, quantity) {
 
 function createOrder(side, price, quantity) {
   const params = signature.generate({
-    symbol: `${CC_SYMBOL}${EX_SYMBOL}`,
+    symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}`,
     type: 'LIMIT',
     timeInForce: 'GTC',
     price: String(price),
@@ -80,7 +80,7 @@ function createOrder(side, price, quantity) {
 }
 
 function cancelOrder(orderId) {
-  const params = signature.generate({ symbol: `${CC_SYMBOL}${EX_SYMBOL}`, orderId })
+  const params = signature.generate({ symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}`, orderId })
   const headers = { 'X-MBX-APIKEY': BINANCE_API_KEY }
   const request = client.delete(`/api/v3/order?${params}`, { headers })
   return handleRequest(request)

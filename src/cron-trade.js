@@ -1,7 +1,7 @@
 const binanceClient = require('./lib/binance')
 const logger = require('./lib/logger')
 
-const { CC_SYMBOL, EX_SYMBOL, TRADE_MIN_LOT, TRADE_PADDING, TRADE_PRECISION } = process.env
+const { CRYPTO_SYMBOL, SOURCE_SYMBOL, TRADE_MIN_LOT, TRADE_PADDING, TRADE_PRECISION } = process.env
 
 const tradePadding = parseFloat(TRADE_PADDING)
 const tradeMinLot = parseFloat(TRADE_MIN_LOT)
@@ -73,8 +73,8 @@ module.exports = async function process() {
     const ccPrice = parseFloat(cc.price)
 
     const account = await binanceClient.getAccount()
-    const ccBalance = getBalance(account, CC_SYMBOL)
-    const exBalance = getBalance(account, EX_SYMBOL)
+    const ccBalance = getBalance(account, CRYPTO_SYMBOL)
+    const exBalance = getBalance(account, SOURCE_SYMBOL)
 
     const order = await placeOrder(ccPrice, ccBalance, exBalance)
 
