@@ -2,7 +2,7 @@ const fs = require('fs')
 
 const { TRADE_PRECISION, TRADE_PADDING } = process.env
 
-const to8Decimal = (value) => (typeof value === 'string' ? value : value.toFixed(TRADE_PRECISION))
+const toDecimal = (value) => (typeof value === 'string' ? value : value.toFixed(TRADE_PRECISION))
 
 const getDate = () => {
   const now = new Date()
@@ -12,33 +12,40 @@ const getDate = () => {
   return `${year}-${month}-${date}`
 }
 
-module.exports = function log(cryptoCurrency, trade, funds, order = {}) {
-  const log = {
-    Date: new Date().toISOString(),
-    Action: order.isExisting ? 'NONE' : order.side,
-    'Buy Price': order.side === 'BUY' ? to8Decimal(order.price) : '0',
-    'Sell Price': order.side === 'SELL' ? to8Decimal(order.price) : '0',
-    Padding: TRADE_PADDING,
-    Crypto: trade.asset,
-    'Crypto Price': to8Decimal(parseFloat(cryptoCurrency.price)),
-    'Crypto Wallet': to8Decimal(parseFloat(trade.free)),
-    'Crypto Locked Wallet': to8Decimal(parseFloat(trade.locked)),
-    Source: funds.asset,
-    'Source Funds': to8Decimal(parseFloat(funds.free)),
-    'Source Locked Funds': to8Decimal(parseFloat(funds.locked)),
-  }
-
-  console.log(`>>${JSON.stringify(log)}`)
-
-  const files = fs.readdirSync('./logs/transaction')
-  const filename = `binance-txn-${getDate()}.csv`
-
+const csvLog = (path, prefix, data) => {
+  const files = fs.readdirSync(path)
+  const filename = `${prefix}-${getDate()}.csv`
   if (files.find((item) => item === filename)) {
-    fs.appendFileSync(`./logs/transaction/${filename}`, `\n${Object.values(log).join(',')}`)
+    fs.appendFileSync(`${path}/${filename}`, `\n${Object.values(data).join(',')}`)
   } else {
     fs.writeFileSync(
-      `./logs/transaction/${filename}`,
-      `${Object.keys(log).join(',')}\n${Object.values(log).join(',')}`,
+      `${path}/${filename}`,
+      `${Object.keys(data).join(',')}\n${Object.values(data).join(',')}`,
     )
+  }
+}
+
+module.exports = function log(cryptoCurrency, trade, funds, order = {}) {
+  const data = {
+    Date: new Date().toISOString(),
+    Action: order.isExisting ? 'NONE' : order.side,
+    Padding: TRADE_PADDING,
+    'Buy Price': order.side === 'BUY' ? toDecimal(order.price) : '0',
+    'Sell Price': order.side === 'SELL' ? toDecimal(order.price) : '0',
+    'Last Order Date': new Date(order.time).toISOString() || 'NONE',
+    Crypto: trade.asset,
+    'Crypto Price': toDecimal(parseFloat(cryptoCurrency.price)),
+    'Crypto Wallet': toDecimal(parseFloat(trade.free)),
+    'Crypto Locked Wallet': toDecimal(parseFloat(trade.locked)),
+    Source: funds.asset,
+    'Source Funds': toDecimal(parseFloat(funds.free)),
+    'Source Locked Funds': toDecimal(parseFloat(funds.locked)),
+  }
+
+  console.log(`>>${JSON.stringify(data)}`)
+  csvLog('./logs/events', 'event', data)
+
+  if (!order.isExisting) {
+    csvLog('./logs/transactions', 'transaction', data)
   }
 }
