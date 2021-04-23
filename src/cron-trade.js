@@ -1,7 +1,7 @@
 const binanceClient = require('./lib/binance')
 const logger = require('./lib/logger')
 
-const { CC_SYMBOL, EX_SYMBOL, TRADE_MIN_LOT, TRADE_PADDING } = process.env
+const { CC_SYMBOL, EX_SYMBOL, TRADE_MIN_LOT, TRADE_PADDING, TRADE_PRECISION } = process.env
 
 const tradePadding = parseFloat(TRADE_PADDING)
 const tradeMinLot = parseFloat(TRADE_MIN_LOT)
@@ -22,15 +22,15 @@ const getBalance = (account, asset) => {
 }
 
 const placeBuyOrder = (currentPrice, availableFunds) => {
-  const quantityByMinLot = Math.floor(availableFunds / currentPrice / tradeMinLot)
-  const quantity = quantityByMinLot * tradeMinLot
   const price = currentPrice + tradePadding
+  const quantityByMinLot = Math.floor(availableFunds / price / tradeMinLot)
+  const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
   return binanceClient.createOrder('BUY', price, quantity)
 }
 
 const placeSellOrder = (currentPrice, availableCC) => {
   const quantityByMinLot = Math.floor(availableCC / tradeMinLot)
-  const quantity = quantityByMinLot * tradeMinLot
+  const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
   const price = currentPrice - tradePadding
   return binanceClient.createOrder('SELL', price, quantity)
 }
