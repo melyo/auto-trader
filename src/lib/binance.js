@@ -70,9 +70,9 @@ function createOrder(side, price, quantity) {
     symbol: `${CC_SYMBOL}${EX_SYMBOL}`,
     type: 'LIMIT',
     timeInForce: 'GTC',
-    side,
-    price,
+    price: String(price),
     quantity,
+    side,
   })
   const headers = { 'X-MBX-APIKEY': BINANCE_API_KEY }
   const request = client.post(`/api/v3/order?${params}`, null, { headers })
