@@ -32,7 +32,7 @@ module.exports = function log(cryptoCurrency, trade, funds, order = {}) {
     Padding: TRADE_PADDING,
     'Buy Price': order.side === 'BUY' ? toDecimal(order.price) : '0',
     'Sell Price': order.side === 'SELL' ? toDecimal(order.price) : '0',
-    'Last Order Date': new Date(order.time).toISOString() || 'NONE',
+    'Last Order Date': order.time ? new Date(order.time).toISOString() : 'NONE',
     Crypto: trade.asset,
     'Crypto Price': toDecimal(parseFloat(cryptoCurrency.price)),
     'Crypto Wallet': toDecimal(parseFloat(trade.free)),
