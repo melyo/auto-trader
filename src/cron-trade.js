@@ -21,15 +21,15 @@ const getBalance = (account, asset) => {
       }
 }
 
-const placeBuyOrder = (currentPrice, availableFunds) => {
+const placeBuyOrder = (currentPrice, availableSource) => {
   const price = currentPrice + tradePadding
-  const quantityByMinLot = Math.floor(availableFunds / price / tradeMinLot)
+  const quantityByMinLot = Math.floor(availableSource / price / tradeMinLot)
   const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
   return binanceClient.createOrder('BUY', price, quantity)
 }
 
-const placeSellOrder = (currentPrice, availableCC) => {
-  const quantityByMinLot = Math.floor(availableCC / tradeMinLot)
+const placeSellOrder = (currentPrice, availableCrypto) => {
+  const quantityByMinLot = Math.floor(availableCrypto / tradeMinLot)
   const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
   const price = currentPrice - tradePadding
   return binanceClient.createOrder('SELL', price, quantity)
@@ -56,29 +56,29 @@ const checkExistingOrder = async (currentPrice) => {
   return order
 }
 
-const placeOrder = async (cPrice, ccBalance, exBalance) => {
+const placeOrder = async (cryptoPrice, cryptoBalance, sourceBalance) => {
   // TODO: exit if there is an ongoing transaction
-  if (ccBalance.free < tradeMinLot && ccBalance.locked === 0) {
-    return placeBuyOrder(cPrice, exBalance.free)
-  } else if (ccBalance.free >= tradeMinLot && ccBalance.locked === 0) {
-    return placeSellOrder(cPrice, ccBalance.free)
+  if (cryptoBalance.free < tradeMinLot && cryptoBalance.locked === 0) {
+    return placeBuyOrder(cryptoPrice, sourceBalance.free)
+  } else if (cryptoBalance.free >= tradeMinLot && cryptoBalance.locked === 0) {
+    return placeSellOrder(cryptoPrice, cryptoBalance.free)
   } else {
-    return checkExistingOrder(cPrice)
+    return checkExistingOrder(cryptoPrice)
   }
 }
 
 module.exports = async function process() {
   try {
-    const cc = await binanceClient.getPrice()
-    const ccPrice = parseFloat(cc.price)
+    const crypto = await binanceClient.getPrice()
+    const cryptoPrice = parseFloat(crypto.price)
 
     const account = await binanceClient.getAccount()
-    const ccBalance = getBalance(account, CRYPTO_SYMBOL)
-    const exBalance = getBalance(account, SOURCE_SYMBOL)
+    const cryptoBalance = getBalance(account, CRYPTO_SYMBOL)
+    const sourceBalance = getBalance(account, SOURCE_SYMBOL)
 
-    const order = await placeOrder(ccPrice, ccBalance, exBalance)
+    const order = await placeOrder(cryptoPrice, cryptoBalance, sourceBalance)
 
-    logger(cc, ccBalance, exBalance, order)
+    logger(crypto, cryptoBalance, sourceBalance, order)
   } catch (error) {
     console.log(error)
     console.log('Error:', JSON.stringify(error.details, null, 2))
