@@ -68,9 +68,10 @@ function testOrder(side, price, quantity) {
 function createOrder(side, price, quantity) {
   const params = signature.generate({
     symbol: `${CRYPTO_SYMBOL}${SOURCE_SYMBOL}`,
-    type: 'LIMIT',
+    type: 'STOP_LOSS_LIMIT',
     timeInForce: 'GTC',
-    price: String(price),
+    stopPrice: price,
+    price,
     quantity,
     side,
   })
