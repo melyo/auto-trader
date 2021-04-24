@@ -26,25 +26,44 @@ const csvLog = (path, prefix, data) => {
 }
 
 module.exports = function log(cryptoCurrency, trade, funds, order = {}) {
-  const data = {
+  const ticker = {
     Date: new Date().toISOString(),
-    Action: order.isExisting ? 'NONE' : order.side,
-    Padding: TRADE_PADDING,
-    'Buy Price': order.side === 'BUY' ? toDecimal(order.price) : '0',
-    'Sell Price': order.side === 'SELL' ? toDecimal(order.price) : '0',
-    'Last Order Date': order.time ? new Date(order.time).toISOString() : 'NONE',
+    Symbol: order.symbol,
+    Price: toDecimal(parseFloat(cryptoCurrency.price)),
+    'Trade Padding': TRADE_PADDING,
+  }
+  const crypto = {
     Crypto: trade.asset,
-    'Crypto Price': toDecimal(parseFloat(cryptoCurrency.price)),
     'Crypto Wallet': toDecimal(parseFloat(trade.free)),
     'Crypto Locked Wallet': toDecimal(parseFloat(trade.locked)),
+  }
+  const source = {
     Source: funds.asset,
     'Source Funds': toDecimal(parseFloat(funds.free)),
     'Source Locked Funds': toDecimal(parseFloat(funds.locked)),
   }
+  const orderTime = order.time || order.transactTime
+  const action = {
+    Action: order.isExisting ? 'NONE' : order.side,
+    'Buy Price': toDecimal(order.side === 'BUY' ? order.price : 0),
+    'Sell Price': toDecimal(order.side === 'SELL' ? order.price : 0),
+    Quantity: toDecimal(order.origQty || 0),
+    'Order ID': order.orderId,
+    'Last Trade': orderTime ? new Date(orderTime).toISOString() : 'NONE',
+  }
+  const data = {
+    ...ticker,
+    ...crypto,
+    ...source,
+    ...action,
+  }
 
-  console.log(`>>${JSON.stringify(data)}`)
+  console.log('>>', JSON.stringify(ticker))
+  console.log(JSON.stringify(crypto))
+  console.log(JSON.stringify(source))
+  console.log(JSON.stringify(action))
+
   csvLog('./logs/events', 'event', data)
-
   if (!order.isExisting) {
     csvLog('./logs/transactions', 'transaction', data)
   }
