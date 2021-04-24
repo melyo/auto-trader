@@ -1,13 +1,27 @@
 const binanceClient = require('./lib/binance')
 const logger = require('./lib/logger')
 
-const { CRYPTO_SYMBOL, SOURCE_SYMBOL, TRADE_MIN_LOT, TRADE_PADDING, TRADE_PRECISION } = process.env
+const {
+  CRYPTO_SYMBOL,
+  SOURCE_SYMBOL,
+  TRADE_MIN_NOTIONAL,
+  TRADE_MIN_LOT,
+  TRADE_PADDING,
+  TRADE_PRECISION,
+} = process.env
 
 const tradePadding = parseFloat(TRADE_PADDING)
 const tradeMinLot = parseFloat(TRADE_MIN_LOT)
+const tradeMinNominal = parseFloat(TRADE_MIN_NOTIONAL)
 
-const getBalance = (account, asset) => {
-  const balance = account.balances.find((item) => item.asset === asset)
+const getBalance = async (asset, account = {}) => {
+  let balances = account.balances
+  if (!balances) {
+    const acc = await binanceClient.getAccount()
+    balances = acc.balances
+  }
+
+  const balance = balances.find((item) => item.asset === asset)
   return balance
     ? {
         ...balance,
@@ -21,18 +35,23 @@ const getBalance = (account, asset) => {
       }
 }
 
+const createOrder = async (side, price, quantity) => {
+  const order = await binanceClient.createOrder(side, price, quantity)
+  return { ...order, side, price, origQty: quantity }
+}
+
 const placeBuyOrder = (currentPrice, availableSource) => {
-  const price = currentPrice + tradePadding
+  const price = (currentPrice + tradePadding).toFixed(TRADE_PRECISION)
   const quantityByMinLot = Math.floor(availableSource / price / tradeMinLot)
   const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
-  return binanceClient.createOrder('BUY', price, quantity)
+  return createOrder('BUY', price, quantity)
 }
 
 const placeSellOrder = (currentPrice, availableCrypto) => {
   const quantityByMinLot = Math.floor(availableCrypto / tradeMinLot)
   const quantity = (quantityByMinLot * tradeMinLot).toFixed(TRADE_PRECISION)
-  const price = currentPrice - tradePadding
-  return binanceClient.createOrder('SELL', price, quantity)
+  const price = (currentPrice - tradePadding).toFixed(TRADE_PRECISION)
+  return createOrder('SELL', price, quantity)
 }
 
 const getOrder = async () => {
@@ -42,29 +61,35 @@ const getOrder = async () => {
   return order ? { ...order, isExisting: true } : { price: 0 }
 }
 
-const checkExistingOrder = async (currentPrice) => {
-  const order = await getOrder()
-  if (order.side === 'SELL' && currentPrice < parseFloat(order.price) + tradePadding) {
-    const cancelled = await binanceClient.cancelOrder(order.orderId)
-    const remaining = parseFloat(cancelled.origQty) - parseFloat(cancelled.executedQty)
-    return placeSellOrder(currentPrice, remaining)
-  } else if (order.side === 'BUY' && currentPrice < parseFloat(order.price) - tradePadding) {
-    const cancelled = await binanceClient.cancelOrder(order.orderId)
-    const remaining = parseFloat(cancelled.origQty) - parseFloat(cancelled.executedQty)
-    return placeBuyOrder(currentPrice, remaining)
-  }
-  return order
-}
-
 const placeOrder = async (cryptoPrice, cryptoBalance, sourceBalance) => {
   // TODO: exit if there is an ongoing transaction
-  if (cryptoBalance.free < tradeMinLot && cryptoBalance.locked === 0) {
-    return placeBuyOrder(cryptoPrice, sourceBalance.free)
-  } else if (cryptoBalance.free >= tradeMinLot && cryptoBalance.locked === 0) {
-    return placeSellOrder(cryptoPrice, cryptoBalance.free)
+  const order = await getOrder()
+  if (order.isExisting) {
+    //
+    console.log({
+      side: order.side,
+      crypto: cryptoPrice,
+      toComp: parseFloat(order.price) - tradePadding,
+      cond: cryptoPrice < parseFloat(order.price) - tradePadding,
+    })
+    //
+    if (order.side === 'SELL' && cryptoPrice > parseFloat(order.price) + tradePadding) {
+      await binanceClient.cancelOrder(order.orderId)
+      const newCryptoBalance = await getBalance(CRYPTO_SYMBOL)
+      return placeSellOrder(cryptoPrice, newCryptoBalance.free)
+    } else if (order.side === 'BUY' && cryptoPrice < parseFloat(order.price) - tradePadding) {
+      await binanceClient.cancelOrder(order.orderId)
+      const newSourceBalance = await getBalance(SOURCE_SYMBOL)
+      return placeBuyOrder(cryptoPrice, newSourceBalance.free)
+    }
   } else {
-    return checkExistingOrder(cryptoPrice)
+    if (cryptoBalance.free < tradeMinNominal && cryptoBalance.locked === 0) {
+      return placeBuyOrder(cryptoPrice, sourceBalance.free)
+    } else if (cryptoBalance.free >= tradeMinNominal && cryptoBalance.locked === 0) {
+      return placeSellOrder(cryptoPrice, cryptoBalance.free)
+    }
   }
+  return order
 }
 
 module.exports = async function process() {
@@ -73,8 +98,8 @@ module.exports = async function process() {
     const cryptoPrice = parseFloat(crypto.price)
 
     const account = await binanceClient.getAccount()
-    const cryptoBalance = getBalance(account, CRYPTO_SYMBOL)
-    const sourceBalance = getBalance(account, SOURCE_SYMBOL)
+    const cryptoBalance = await getBalance(CRYPTO_SYMBOL, account)
+    const sourceBalance = await getBalance(SOURCE_SYMBOL, account)
 
     const order = await placeOrder(cryptoPrice, cryptoBalance, sourceBalance)
 
